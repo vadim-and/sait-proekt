@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DYNAMIC STRUCTURES LAB — РФМШ Алматы</title>
+<script src="https://cdn.tailwindcss.com"></script><script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#080e19;color:#e2e8f0;font-family:Inter,system-ui,sans-serif}.panel{background:#111c2d;border:1px solid #26364d;border-radius:13px}.section-title{color:#94a3b8;font-size:11px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase}input[type=range]{width:100%;accent-color:#38bdf8}select{background:#172438;border:1px solid #334155;color:white;padding:10px;border-radius:7px;width:100%}.value{color:#38bdf8;font-family:monospace;font-size:16px;font-weight:bold}.metric{background:#172438;border:1px solid #30435d;padding:13px;border-radius:9px}.badge{border:1px solid #334155;padding:4px 9px;border-radius:5px;font-size:10px;color:#94a3b8}.action{border-radius:8px;padding:11px 14px;font-weight:700;font-size:13px}.primary{background:#0284c7;color:white}.primary:disabled{opacity:.45;cursor:not-allowed}.secondary{border:1px solid #475569;color:#cbd5e1}canvas{max-width:100%}.timer{font-family:ui-monospace,monospace;font-size:25px;font-weight:800}.muted{color:#94a3b8}
+</style></head>
+<body>
+<header class="border-b border-slate-700 px-5 py-5"><div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-4"><div><div class="text-cyan-400 font-black text-xl tracking-widest">DYNAMIC STRUCTURES LAB</div><div class="text-slate-400 text-xs mt-1">ИНЖЕНЕРНЫЙ СИМУЛЯТОР ДИНАМИЧЕСКОГО ГАШЕНИЯ КОЛЕБАНИЙ</div></div><div class="text-right"><div class="text-white font-bold text-sm">РФМШ АЛМАТЫ</div><div class="text-slate-500 text-xs">НАУЧНЫЙ ПРОЕКТ · 2026</div></div></div></header>
+<main class="max-w-7xl mx-auto p-4 md:p-6">
+<div class="mb-6"><div class="badge inline-block mb-3">STRUCTURAL DYNAMICS / RESEARCH SIMULATION</div><h1 class="text-2xl md:text-3xl font-bold">Исследование эффективности систем динамического гашения колебаний</h1><p class="text-slate-400 text-sm mt-2 max-w-4xl">Маятниковые и гидродинамические демпферы; Smart Fluid представлен качественно, без количественной модели из-за отсутствия исходных параметров.</p></div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+<aside class="lg:col-span-3 space-y-4">
+<div class="panel p-5"><div class="section-title mb-5">01 / Параметры сооружения</div>
+<div class="mb-5"><div class="flex justify-between mb-2"><label class="text-sm">Собственная частота f₁</label><span id="f1Val" class="value">0.20 Гц</span></div><input id="f1" type="range" min=".1" max="3" step=".01" value=".2"><div class="flex justify-between text-xs text-slate-500 mt-1"><span>0.10 Гц</span><span>3.00 Гц</span></div></div>
+<div class="mb-5"><div class="flex justify-between mb-2"><label class="text-sm">Относительная масса μ</label><span id="muVal" class="value">2.0%</span></div><input id="mu" type="range" min=".5" max="10" step=".1" value="2"><div class="text-xs text-slate-500 mt-2">Масса здания: 10 000 т</div></div>
+<div><div class="flex justify-between mb-2"><label class="text-sm">Частота воздействия</label><span id="forceVal" class="value">0.20 Гц</span></div><input id="force" type="range" min=".05" max="5" step=".01" value=".2"><div class="flex justify-between text-xs text-slate-500 mt-1"><span>0.05 Гц</span><span>5.00 Гц</span></div></div></div>
+<div class="panel p-5"><div class="section-title mb-4">02 / Внешнее воздействие</div><div class="grid grid-cols-2 gap-2 mb-4"><button id="earthBtn" class="active border border-slate-600 rounded-lg p-2 text-sm" onclick="setLoad('earth')">🌎 Землетрясение</button><button id="windBtn" class="border border-slate-600 rounded-lg p-2 text-sm" onclick="setLoad('wind')">🌬 Ветер</button></div>
+<div id="earthControl"><div class="flex justify-between mb-2"><label class="text-sm">Масштаб акселерограммы</label><span id="earthVal" class="value">1.00×</span></div><input id="earth" type="range" min=".5" max="1.5" step=".05" value="1">
+<div class="text-xs text-slate-500 mt-2">Загрузи CSV с двумя столбцами: время (с) и ускорение грунта. Единицы выбери явно:</div><select id="recordUnit" class="mt-2"><option value="g">Ускорение в g</option><option value="m/s2">Ускорение в м/с²</option></select>
+<div class="flex flex-wrap gap-2 mt-2"><button type="button" class="action secondary" onclick="document.getElementById('recordFile').click()">Загрузить акселерограмму CSV</button><input id="recordFile" type="file" accept=".csv,.txt,.dat,text/plain" style="display:none"><span id="recordStatus" class="text-xs muted">CSV не загружен · доступен демонстрационный импульс</span></div>
+<div class="text-xs text-slate-500 mt-2">Пример записи: <a class="text-cyan-400 underline" href="https://www.vibrationdata.com/elcentro.dat" target="_blank" rel="noopener">El Centro NS (1940)</a>. Для неё выбери g.</div></div>
+<div id="windControl" class="hidden"><div class="flex justify-between mb-2"><label class="text-sm">Скорость ветра</label><span id="windVal" class="value">25 м/с</span></div><input id="wind" type="range" min="0" max="50" value="25"><div class="text-xs text-slate-500 mt-2">Пульсирующая ветровая нагрузка: F̂ = 0,2 · ½ρCᵈAv²; приняты ρ = 1,225 кг/м³, Cᵈ = 1,3, A = 6000 м². Скорость влияет на силу пропорционально v².</div></div></div>
+<div class="panel p-5"><div class="section-title mb-4">03 / Тип демпфера</div><select id="damper"><option value="tmd">Маятниковый TMD</option><option value="tld">Гидродинамический TLD</option><option value="smart">Реологический Smart Fluid</option></select>
+<div id="tldOptions" class="hidden mt-4"><label class="text-xs text-slate-400 block mb-2">Конструкция бака</label><select id="mesh"><option value=".02">Без сеток — ζ = 2%</option><option value=".05">С сетками — ζ = 5%</option></select><div class="text-xs text-slate-500 mt-2">Геометрия рассчитывается по формуле плескания при h/l = 0,15.</div></div>
+<div id="smartInfo" class="hidden mt-4 text-xs text-cyan-300">В презентации заданы только уравнение Бингама и принцип действия. Параметры Fc и c₀ отсутствуют, поэтому количественный расчёт Smart Fluid не выполняется.</div>
+<div id="tuneControl" class="mt-4"><div class="flex justify-between mb-2"><label class="text-xs text-slate-400">Расстройка частоты демпфера</label><span id="tuneVal" class="value">0%</span></div><input id="detune" type="range" min="-10" max="10" step=".5" value="0"><div class="flex justify-between text-xs text-slate-500 mt-1"><span>−10%</span><span>+10%</span></div></div></div>
+<button onclick="resetAll()" class="w-full secondary action">↺ Сбросить параметры</button>
+</aside>
+<section class="lg:col-span-6 space-y-4">
+<div class="panel p-4"><div class="flex flex-wrap justify-between items-center gap-3 mb-3"><div><div class="section-title">04 / Форма деформации сооружения</div><div class="text-xs text-slate-400 mt-1">Основание условно закреплено; горизонтальное смещение возрастает к верхушке</div></div><span id="runStatus" class="badge">ОЖИДАНИЕ ЗАПУСКА</span></div>
+<canvas id="buildingCanvas" width="900" height="440" style="width:100%;height:auto"></canvas>
+<div class="text-xs text-slate-500 mt-2">Схема формы изгиба: перемещение нижних этажей мало, максимальное — на уровне крыши. Амплитуда визуально ограничена для читаемости, а физические значения выводятся отдельно.</div>
+<div class="grid grid-cols-2 gap-2 mt-3"><div class="metric"><div class="text-xs text-slate-500">Таймер системы БЕЗ демпфера</div><div id="timerNo" class="timer text-red-400">00:00.0</div><div id="stateNo" class="text-xs muted">Ожидает запуска</div></div><div class="metric"><div class="text-xs text-slate-500">Таймер системы С демпфером</div><div id="timerYes" class="timer text-green-400">00:00.0</div><div id="stateYes" class="text-xs muted">Ожидает запуска</div></div></div>
+<div class="flex flex-wrap items-center gap-2 mt-3"><button id="startBtn" class="action primary" onclick="start()">▶ Запустить симуляцию</button><button class="action secondary" onclick="resetSimulation()">↺ Сбросить эксперимент</button><span id="timerMessage" class="text-xs muted">Настрой параметры, затем запускай эксперимент.</span></div>
+<div class="metric mt-3"><div class="flex justify-between items-center gap-3 mb-2"><label for="timeSpeed" class="text-sm font-medium">⏩ Ускорение времени</label><span id="timeSpeedVal" class="value">×1</span></div><input id="timeSpeed" type="range" min="1" max="10" step="1" value="1" class="w-full"><div class="flex justify-between text-xs text-slate-500 mt-1"><span>×1 · обычная скорость</span><span>×10 · максимум</span></div><div class="text-xs muted mt-2">Ускоряет модельное время, анимацию здания, график и оба таймера одновременно.</div></div>
+<div class="text-xs text-slate-500 mt-2">Каждый таймер останавливается независимо, когда огибающая соответствующей системы падает до 5% от начальной амплитуды. Вторая система продолжает отсчёт.</div></div>
+<div class="panel p-4"><div class="section-title mb-2">Масштабная схема и увеличенный узел демпфера</div><div class="text-xs muted mb-2">Слева — здание высотой 200 м и подвес в одном масштабе. Справа — увеличенный фрагмент крыши (масштаб ×10), чтобы конструкцию маятника было видно.</div><canvas id="scaleCanvas" width="900" height="300" style="width:100%;height:auto"></canvas></div>
+<div class="panel p-5"><div class="section-title mb-4">05 / Амплитудно-частотная характеристика</div><label class="text-xs text-slate-400 block mb-2">Тип возбуждения для расчётной АЧХ</label><select id="freqInputMode" class="mb-3"><option value="force">Сила, приложенная к зданию</option><option value="base">Колебания основания (лабораторный опыт)</option></select><div style="height:270px"><canvas id="frequencyChart"></canvas></div><div class="flex gap-4 mt-3 text-xs"><span class="text-red-400">● Без демпфера</span><span class="text-green-400">● С демпфером</span><span class="text-violet-400">● Эксперимент</span></div><div class="flex flex-wrap items-center gap-2 mt-3"><button type="button" class="action secondary" onclick="document.getElementById('experimentFile').click()">Загрузить экспериментальную АЧХ CSV</button><input id="experimentFile" type="file" accept=".csv,.txt,.dat,text/plain" style="display:none"><span id="experimentStatus" class="text-xs muted">Экспериментальные точки не загружены</span></div><div class="text-xs text-slate-500 mt-2">CSV: частота (Гц), амплитуда, нормированная к статическому смещению. Данные опыта не подменяются расчётными.</div></div>
+<div class="panel p-5"><div class="section-title mb-4" id="timeChartTitle">06 / Свободное затухание после начального толчка</div><div style="height:230px"><canvas id="timeChart"></canvas></div><div class="text-xs text-slate-400 mt-3">Для короткого сейсмического импульса настроенный TMD не обязательно заметно уменьшает первый максимум: его основная польза может проявиться после толчка — в более быстром затухании остаточных колебаний. Поэтому оцениваются отдельно первый пик и время затухания.</div></div>
+</section>
+<aside class="lg:col-span-3 space-y-4"><div class="panel p-5"><div class="section-title mb-4">07 / Аналитическая панель</div><div class="space-y-3">
+<div class="metric"><div class="text-xs text-slate-500">Масса демпфера</div><div class="text-2xl font-bold" id="massResult">200 т</div></div>
+<div class="metric"><div class="text-xs text-slate-500">Расчётная длина подвеса</div><div class="text-2xl font-bold" id="lengthResult">— м</div><div class="text-xs text-slate-500 mt-1" id="lengthHint">Физическая длина, не условный размер рисунка</div></div>
+<div class="metric"><div class="text-xs text-slate-500">Снижение амплитуды при заданной частоте</div><div class="text-2xl font-bold text-green-400" id="effResult">— %</div><div class="text-xs text-slate-500 mt-1" id="peakResult">Пик АЧХ: —</div></div>
+<div class="metric"><div class="text-xs text-slate-500">Расчётное время до 5% (без / с)</div><div class="text-xl font-bold" id="decayResult">—</div></div></div></div>
+<div class="panel p-5"><div class="section-title mb-4">08 / Экономическая оценка</div>
+<div class="text-xs text-slate-400 mb-3">Стоимость не задана в исходных материалах. Введи подтверждённые значения, чтобы рассчитать долю.</div>
+<label class="text-xs text-slate-400">Стоимость здания, млн $</label><input id="buildingCost" type="number" min="1" step="1" value="" placeholder="Введите значение" class="w-full mt-1 mb-3 rounded-lg p-2 bg-slate-800 border border-slate-600 text-white">
+<label class="text-xs text-slate-400">Стоимость выбранного демпфера, млн $</label><input id="damperCost" type="number" min="0" step="0.1" value="" placeholder="Введите значение" class="w-full mt-1 mb-3 rounded-lg p-2 bg-slate-800 border border-slate-600 text-white">
+<div class="metric"><div class="text-xs text-slate-500">Доля стоимости демпфера от здания</div><div class="text-2xl font-bold text-amber-300" id="costRatio">1.00%</div></div>
+<div class="text-xs text-slate-400 mt-2" id="costHint">Отношение стоимости демпфера к стоимости здания.</div></div>
+<div class="panel p-5"><div class="section-title mb-4">09 / Физические характеристики</div><div class="space-y-3 text-sm"><div class="flex justify-between"><span class="muted">ω₁</span><span id="omegaResult" class="font-mono">—</span></div><div class="flex justify-between"><span class="muted">f демпфера</span><span id="fdResult" class="font-mono">—</span></div><div class="flex justify-between"><span class="muted">ζ демпфера</span><span id="zetaResult" class="font-mono">—</span></div><div class="flex justify-between"><span class="muted">Условная нагрузка</span><span id="loadResult" class="font-mono">—</span></div></div></div>
+<div class="panel p-5"><div class="section-title mb-3">10 / Модель</div><div id="statusText" class="text-sm text-cyan-300 leading-relaxed">Настрой параметры и запусти эксперимент.</div><div class="mt-3 h-2 bg-slate-700 rounded-full overflow-hidden"><div id="effBar" class="h-full bg-cyan-400" style="width:0%"></div></div></div></aside></div>
+<footer class="border-t border-slate-700 mt-8 pt-5 pb-8 text-center text-xs text-slate-500">НАУЧНО-ИССЛЕДОВАТЕЛЬСКИЙ ПРОЕКТ · РФМШ АЛМАТЫ · 2026</footer></main>
+<script>
+const M=10000,g=9.81,HBUILD=200,ZETA0=.01,DT=.01,$=id=>document.getElementById(id);
+let loadType='earth',sim=null,raf=null,current={A0:0,A1:0,f:.2,eff:0},seismicRecord=null,experimentalData=[];
+const fmt=t=>{let m=Math.floor(t/60),s=(t%60).toFixed(1).padStart(4,'0');return String(m).padStart(2,'0')+':'+s};
+function damper(){
+ const f1=+$('f1').value,mu=+$('mu').value/100,type=$('damper').value,detune=+$('detune').value/100;
+ if(type==='smart')return{type,mu,fd:null,zeta:null,wd:null,length:null,depth:null,waterMass:null,area:null};
+ const fd=f1/(1+mu)*(1+detune),wd=2*Math.PI*fd;
+ if(type==='tmd'){const zeta=Math.sqrt(3*mu/(8*Math.pow(1+mu,3)));return{type,mu,fd,wd,zeta,length:g/(wd*wd),depth:null,waterMass:null,area:null}}
+ const zeta=+$('mesh').value,depthRatio=.15;
+ const length=g*Math.tanh(Math.PI*depthRatio)/(4*Math.PI*fd*fd),depth=depthRatio*length;
+ const effectiveMass=M*mu,coef=(8/Math.pow(Math.PI,3))*(length/depth)*Math.tanh(Math.PI*depth/length);
+ const waterMass=effectiveMass/coef,area=waterMass/depth;
+ return{type,mu,fd,wd,zeta,length,depth,waterMass,area};
+}
+function complexMul(a,b){return[a[0]*b[0]-a[1]*b[1],a[0]*b[1]+a[1]*b[0]]}
+function complexSub(a,b){return[a[0]-b[0],a[1]-b[1]]}
+function complexAbs(a){return Math.hypot(a[0],a[1])}
+function response(f,on){
+  const f1=+$('f1').value,w=2*Math.PI*f,w1=2*Math.PI*f1,k=M*w1*w1,c=2*ZETA0*M*w1;
+  const baseInput=$('freqInputMode')?.value==='base';
+  if(!on||$('damper').value==='smart'){
+    const den=Math.hypot(k-M*w*w,c*w);
+    return baseInput?(M*w*w/den):(k/den);
+  }
+  const d=damper(),md=M*d.mu,kd=md*d.wd*d.wd,cd=2*d.zeta*md*d.wd;
+  const a=[k+kd-M*w*w,(c+cd)*w],b=[-kd,-cd*w],q=[kd-md*w*w,cd*w];
+  const det=complexSub(complexMul(a,q),complexMul(b,b));
+  if(baseInput){
+    const rhs0=M*w*w, rhs1=md*w*w;
+    const numerator=complexSub([q[0]*rhs0,q[1]*rhs0],complexMul(b,[rhs1,0]));
+    return complexAbs([
+      (numerator[0]*det[0]+numerator[1]*det[1])/(det[0]**2+det[1]**2),
+      (numerator[1]*det[0]-numerator[0]*det[1])/(det[0]**2+det[1]**2)
+    ]);
+  }
+  const X=[(q[0]*det[0]+q[1]*det[1])/(det[0]*det[0]+det[1]*det[1]),(q[1]*det[0]-q[0]*det[1])/(det[0]*det[0]+det[1]*det[1])];
+  return k*complexAbs(X);
+}
+function makeModel(kind){const f1=+$('f1').value,w1=2*Math.PI*f1,k=M*w1*w1,c=2*ZETA0*M*w1;if(kind==='none'||kind==='smart')return{kind,k,c};const d=damper(),md=M*d.mu;return{kind,k,c,md,kd:md*d.wd*d.wd,cd:2*d.zeta*md*d.wd};}
+function deriv(s,model,ag=0,force=0){const x=s[0],v=s[1];if(model.kind==='none'||model.kind==='smart')return[v,(-model.c*v-model.k*x+force)/M-ag];const y=s[2],vy=s[3],ax=(-model.c*v-model.k*x-model.cd*(v-vy)-model.kd*(x-y)+force)/M-ag,ay=(-model.cd*(vy-v)-model.kd*(y-x))/model.md-ag;return[v,ax,vy,ay];}
+function rk4(s,h,model,ag=0,force=0){const add=(a,b,q)=>a.map((v,i)=>v+q*b[i]),k1=deriv(s,model,ag,force),k2=deriv(add(s,k1,h/2),model,ag,force),k3=deriv(add(s,k2,h/2),model,ag,force),k4=deriv(add(s,k3,h),model,ag,force);return s.map((v,i)=>v+h*(k1[i]+2*k2[i]+2*k3[i]+k4[i])/6);}
+function freeResponse(kind,duration=260,step=DT,chartEvery=.05){
+ const model=makeModel(kind);let s=kind==='none'||kind==='smart'?[.01,0]:[.01,0,0,0],out=[],t=0,next=0;
+ const count=Math.ceil(duration/step);
+ for(let i=0;i<=count;i++){
+  if(t+1e-9>=next){out.push({x:t,y:s[0]});next+=chartEvery}
+  if(i<count)s=rk4(s,step,model,0,0);
+  t+=step;
+ }
+ return out;
+}
+function decayTime(kind){
+ const model=makeModel(kind);let s=kind==='none'||kind==='smart'?[.01,0]:[.01,0,0,0],t=0,peak=.01,window=[],windowSec=3/(+$('f1').value);
+ const max=600,checkEvery=10;
+ for(let i=0;i<max/DT;i++){
+  s=rk4(s,DT,model,0,0);t+=DT;peak=Math.max(peak,Math.abs(s[0]));
+  if(i%checkEvery===0){window.push({t,x:Math.abs(s[0])});while(window.length&&window[0].t<t-windowSec)window.shift();if(t>windowSec&&window.length>2&&Math.max(...window.map(p=>p.x))<=peak*.05)return t;}
+ }
+ return null;
+}
+function peakResponse(on){let max=0,at=0;const step=1.45/3000;for(let i=0;i<=3000;i++){const f=.05+i*step,v=response(f,on);if(v>max){max=v;at=f}}const f1=+$('f1').value,v1=response(f1,on);if(v1>max){max=v1;at=f1}for(let i=-150;i<=150;i++){const f=Math.max(.05,Math.min(fMax,at+i*step/10)),v=response(f,on);if(v>max){max=v;at=f}}return{max,at}}
+const opts={responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'#26364d'},ticks:{color:'#94a3b8'}},y:{grid:{color:'#26364d'},ticks:{color:'#94a3b8'}}}};
+const fc=new Chart($('frequencyChart'),{type:'line',data:{datasets:[{data:[],borderColor:'#f87171',borderWidth:2,pointRadius:0},{data:[],borderColor:'#4ade80',borderWidth:2,pointRadius:0},{data:[],borderColor:'#a78bfa',borderWidth:0,pointRadius:4,showLine:false}]},options:{...opts,parsing:false,scales:{x:{type:'linear',title:{display:true,text:'Частота, Гц',color:'#94a3b8'},grid:{color:'#26364d'},ticks:{color:'#94a3b8'}},y:{title:{display:true,text:'Амплитуда / статическое смещение',color:'#94a3b8'},grid:{color:'#26364d'},ticks:{color:'#94a3b8'}}}}});
+const tc=new Chart($('timeChart'),{type:'line',data:{datasets:[{data:[],borderColor:'#f87171',borderWidth:2,pointRadius:0},{data:[],borderColor:'#4ade80',borderWidth:2,pointRadius:0}]},options:{...opts,parsing:false,scales:{x:{type:'linear',title:{display:true,text:'Время, с',color:'#94a3b8'},grid:{color:'#26364d'},ticks:{color:'#94a3b8'}},y:{title:{display:true,text:'Перемещение, м',color:'#94a3b8'},grid:{color:'#26364d'},ticks:{color:'#94a3b8'}}}}});
+function update(){
+ const f1=+$('f1').value,mu=+$('mu').value,f=+$('force').value,d=damper(),A0=response(f,false),quantified=d.type!=='smart',A1=quantified?response(f,true):null,eff=quantified&&A0?(1-A1/A0)*100:null;
+ $('f1Val').textContent=f1.toFixed(2)+' Гц';$('muVal').textContent=mu.toFixed(1)+'%';$('forceVal').textContent=f.toFixed(2)+' Гц';$('earthVal').textContent=(+$('earth').value).toFixed(2)+'×';$('windVal').textContent=$('wind').value+' м/с';$('tuneVal').textContent=(+$('detune').value>0?'+':'')+(+$('detune').value).toFixed(1)+'%';
+ $('massResult').textContent=d.type==='smart'?'—':(M*mu/100).toFixed(0)+' т';$('lengthResult').textContent=d.length===null?'—':d.length.toFixed(2)+' м';
+ $('lengthHint').textContent=d.type==='tmd'?'Длина маятника по l = g/ωd²':d.type==='tld'?'Бак: h = 0,15l; эффективная масса = '+(M*d.mu).toFixed(0)+' т':'Для реологического устройства длина подвеса не применяется';
+ $('effResult').textContent=eff===null?'не рассчитано':eff.toFixed(1)+'%';
+ $('omegaResult').textContent=(2*Math.PI*f1).toFixed(3)+' рад/с';$('fdResult').textContent=d.fd===null?'—':d.fd.toFixed(3)+' Гц';$('zetaResult').textContent=d.zeta===null?'—':(d.zeta*100).toFixed(2)+'%';$('loadResult').textContent=loadType==='earth'?(seismicRecord?'CSV · '+seismicRecord.unit:'Демо · условный импульс'):'Ветровая гармоника · F̂ = '+(.2*.5*1.225*1.3*6000*(+$('wind').value)**2/1e6).toFixed(2)+' МН';
+ if(d.type==='tld')$('statusText').textContent=`TLD: эквивалентный осциллятор; бак ${d.length.toFixed(2)} × ${d.depth.toFixed(2)} м, вода ≈ ${d.waterMass.toFixed(0)} т, площадь ≈ ${d.area.toFixed(0)} м². ζ — оценка для выбранной сетки.`;
+ else if(d.type==='tmd')$('statusText').textContent='TMD: двухстепенная модель «здание + маятник». Частота и ζ демпфера — по формулам Ден-Гартога; расстройка задаётся ползунком.';
+ else $('statusText').textContent='Smart Fluid: количественная кривая не строится — в исходной презентации нет Fc и c₀. Применима модель Бингама F = Fc·sgn(v) + c₀v, но её параметры нужно измерить.';
+ const costB=Number($('buildingCost').value),costD=Number($('damperCost').value);
+ if(Number.isFinite(costB)&&costB>0&&Number.isFinite(costD)&&costD>=0){const ratio=costD/costB*100;$('costRatio').textContent=ratio.toFixed(2)+'%';$('costHint').textContent=`Демпфер: ${costD.toFixed(2)} млн $ · Здание: ${costB.toFixed(2)} млн $.`}
+ else{$('costRatio').textContent='—';$('costHint').textContent='Введи подтверждённые стоимости обоих объектов.'}
+ $('effBar').style.width=eff===null?0:Math.max(0,Math.min(100,eff))+'%';
+ let a=[],b=[],fMax=Math.max(1.5,+$('f1').value*2.5);for(let i=0;i<=600;i++){let x=.05+i*(fMax-.05)/600;a.push({x,y:response(x,false)});if(quantified)b.push({x,y:response(x,true)})}
+ fc.options.scales.x.max=fMax;fc.options.scales.y.title.text=$('freqInputMode').value==='base'?'Перемещение здания / перемещение основания':'Амплитуда / статическое смещение';fc.data.datasets[0].data=a;fc.data.datasets[1].data=b;fc.data.datasets[2].data=experimentalData;fc.update('none');
+ const p0=peakResponse(false),p1=quantified?peakResponse(true):null;
+ $('peakResult').textContent=p1?`Максимум: ${p0.max.toFixed(1)} → ${p1.max.toFixed(1)}; снижение пика ×${(p0.max/p1.max).toFixed(2)}`:`Сравнение пиков для Smart Fluid не рассчитано`;
+ const t0=decayTime('none'),t1=quantified?decayTime(d.type):null;
+ $('decayResult').textContent=fmtSeconds(t0)+' / '+(t1===null?'—':fmtSeconds(t1));
+ current={A0,A1,f,eff};if(!sim)drawFreeChart();
+}
+function fmtSeconds(t){return t===null?'не достигнуто':t.toFixed(1)+' с'}
+function drawFreeChart(){const no=freeResponse('none',260),yes=$('damper').value==='smart'?[]:freeResponse($('damper').value,260);tc.data.datasets[0].data=no;tc.data.datasets[1].data=yes;tc.update('none')}
+function setLoad(t){if(sim)resetSimulation();loadType=t;$('earthBtn').classList.toggle('active',t==='earth');$('windBtn').classList.toggle('active',t==='wind');$('earthControl').classList.toggle('hidden',t!=='earth');$('windControl').classList.toggle('hidden',t!=='wind');$('timeChartTitle').textContent=t==='earth'?'06 / Отклик на акселерограмму и последующее затухание':'06 / Отклик на гармоническую нагрузку и затухание';updateStartAvailability();}
+function updateStartAvailability(){$('startBtn').disabled=!!sim;if(!sim&&loadType==='earth'&&!seismicRecord)$('timerMessage').textContent='Будет использован условный демонстрационный сейсмический импульс. Для расчёта по реальной записи загрузи CSV.';else if(!sim)$('timerMessage').textContent='Настрой параметры, затем запускай эксперимент.'}
+function damperUI(){let t=$('damper').value;$('tldOptions').classList.toggle('hidden',t!=='tld');$('smartInfo').classList.toggle('hidden',t!=='smart');$('tuneControl').classList.toggle('hidden',t==='smart');update()}
+function parseRecord(text){
+ const rows=text.split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map(line=>line.split(/[\s,;\t]+/).map(Number)).filter(r=>r.length>=2&&Number.isFinite(r[0])&&Number.isFinite(r[1]));
+ if(rows.length<10)throw new Error('Нужно не менее 10 строк с двумя числовыми столбцами.');
+ const t0=rows[0][0],data=rows.map(r=>({t:r[0]-t0,a:r[1]}));
+ for(let i=1;i<data.length;i++)if(data[i].t<=data[i-1].t)throw new Error('Время в первом столбце должно строго возрастать.');
+ const maxA=Math.max(...data.map(p=>Math.abs(p.a))),unit=maxA<2?'g':'m/s2';
+ return{data,unit,duration:data[data.length-1].t,dt:(data[data.length-1].t-data[0].t)/(data.length-1)};
+}
+$('experimentFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{const rows=(await file.text()).split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map(line=>line.split(/[\s,;\t]+/).map(Number)).filter(r=>r.length>=2&&Number.isFinite(r[0])&&Number.isFinite(r[1]));if(rows.length<3)throw new Error('Нужно не менее трёх точек с двумя числовыми столбцами.');experimentalData=rows.map(r=>({x:r[0],y:r[1]}));fc.data.datasets[2].data=experimentalData;fc.update('none');$('experimentStatus').textContent=`Загружено точек: ${experimentalData.length}`;}catch(err){experimentalData=[];fc.data.datasets[2].data=[];fc.update('none');$('experimentStatus').textContent=err.message;}});
+$('recordFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;try{seismicRecord=parseRecord(await file.text());$('recordStatus').textContent=`Загружено: ${file.name} · ${seismicRecord.data.length} точек · ${seismicRecord.duration.toFixed(2)} с · ${seismicRecord.unit}`;$('timerMessage').textContent='Акселерограмма загружена. При коротком сейсмическом импульсе TMD может мало снизить первый пик, но ускорить последующее затухание — сравни оба показателя.';updateStartAvailability()}catch(err){seismicRecord=null;$('recordStatus').textContent='Ошибка файла';$('timerMessage').textContent=err.message;updateStartAvailability()}});
+function recordAccel(t){
+ const scale=+$('earth').value;
+ if(seismicRecord){
+  if(t<0||t>seismicRecord.duration)return 0;
+  const d=seismicRecord.data;let lo=0,hi=d.length-1;
+  while(hi-lo>1){const mid=(lo+hi)>>1;if(d[mid].t<=t)lo=mid;else hi=mid;}
+  const a=d[lo],b=d[hi],q=(t-a.t)/(b.t-a.t);
+  let v=a.a+(b.a-a.a)*q;if(seismicRecord.unit==='g')v*=g;
+  return v*scale;
+ }
+ // Synthetic demo only: a short, tapered base-acceleration pulse; not a measured earthquake record.
+ if(t<0||t>20)return 0;
+ const envelope=Math.exp(-0.5*Math.pow((t-7)/2.6,2));
+ const carrier=Math.sin(2*Math.PI*(1.15*t+0.018*t*t));
+ return 0.15*g*scale*envelope*carrier;
+}
+function start(){if(sim)return;
+ const type=$('damper').value,quantified=type!=='smart',kind=quantified?type:'smart',now=performance.now(),f=current.f,period=1/(+$('f1').value);
+ const s0=loadType==='earth'?[0,0]:[.01,0],s1=kind==='tmd'||kind==='tld'?(loadType==='earth'?[0,0,0,0]:[.01,0,0,0]):[...s0];
+ sim={lastNow:now,t:0,accum:0,step:DT,kind,quantified,s0,s1,model0:makeModel('none'),model1:makeModel(kind),lastHistTick:-1,f,period,recordEnd:loadType==='earth'?(seismicRecord?seismicRecord.duration:20):50/f,mode:loadType,peak0:0,peak1:0,hist0:[],hist1:[],data0:[],data1:[],lastChart:0,done0:null,done1:quantified?null:0};
+ $('runStatus').textContent='СИМУЛЯЦИЯ ИДЁТ';$('startBtn').disabled=true;$('stateNo').textContent='Колеблется';$('stateYes').textContent=quantified?'Колеблется':'Не рассчитано — нет Fc и c₀';$('timerMessage').textContent=loadType==='earth'?(seismicRecord?'Расчёт по загруженной акселерограмме. Первый пик и последующее затухание оцениваются отдельно.':'Демонстрационный импульс — условный сигнал, не реальная акселерограмма.'):'Гармонический тест: 50 циклов, затем свободное затухание. Ветровая сила рассчитывается по динамическому давлению с принятыми параметрами фасада.';raf=requestAnimationFrame(tick);
+}
+function addHistory(arr,t,x){arr.push({t,x:Math.abs(x)});while(arr.length&&arr[0].t<t-3/(+$('f1').value))arr.shift()}
+function timerReached(arr,peak,t,recordEnd){if(t<recordEnd+3/(+$('f1').value)||peak<=0||arr.length<5||arr[0].t>t-2.95/(+$('f1').value))return false;return Math.max(...arr.map(p=>p.x))<=peak*.05}
+function tick(now){if(!sim)return;let realDt=Math.min(.1,Math.max(0,(now-sim.lastNow)/1000));sim.lastNow=now;sim.accum+=realDt*(+$('timeSpeed').value);let h=sim.step;
+ while(sim.accum>=h&&sim.t<sim.recordEnd+360){
+  const t=sim.t,vWind=+$('wind').value,rho=1.225,Cd=1.3,facadeArea=6000;
+   const windPeak=.2*.5*rho*Cd*facadeArea*vWind*vWind;
+   const force=(sim.mode==='wind'&&t<sim.recordEnd)?windPeak*Math.sin(2*Math.PI*sim.f*t):0;
+  const ag=sim.mode==='earth'?recordAccel(t):0;
+  sim.s0=rk4(sim.s0,h,sim.model0,ag,force);
+  sim.s1=rk4(sim.s1,h,sim.model1,ag,force);
+  sim.t+=h;sim.accum-=h;sim.peak0=Math.max(sim.peak0,Math.abs(sim.s0[0]));sim.peak1=Math.max(sim.peak1,Math.abs(sim.s1[0]));
+  const histTick=Math.floor(sim.t*10);if(histTick!==sim.lastHistTick){sim.lastHistTick=histTick;addHistory(sim.hist0,sim.t,sim.s0[0]);addHistory(sim.hist1,sim.t,sim.s1[0]);}
+  if(sim.done0===null&&timerReached(sim.hist0,sim.peak0,sim.t,sim.recordEnd)){sim.done0=sim.t;$('stateNo').textContent='Затухла — таймер остановлен'}
+  if(sim.quantified&&sim.done1===null&&timerReached(sim.hist1,sim.peak1,sim.t,sim.recordEnd)){sim.done1=sim.t;$('stateYes').textContent='Затухла — таймер остановлен'}
+  if(sim.t-sim.lastChart>=.05){sim.data0.push({x:sim.t,y:sim.s0[0]});sim.data1.push({x:sim.t,y:sim.s1[0]});sim.lastChart=sim.t;}
+  if(sim.done0!==null&&sim.done1!==null)break;
+ }
+ $('timerNo').textContent=fmt(sim.done0===null?sim.t:sim.done0);$('timerYes').textContent=sim.quantified?fmt(sim.done1===null?sim.t:sim.done1):'—';
+ tc.data.datasets[0].data=sim.data0;tc.data.datasets[1].data=sim.quantified?sim.data1:[];tc.update('none');
+ if((sim.done0!==null&&(!sim.quantified||sim.done1!==null))||sim.t>=sim.recordEnd+360){$('runStatus').textContent='РАСЧЁТ ЗАВЕРШЁН';$('timerMessage').textContent='Таймеры остановлены: огибающая оставалась ниже 5% пикового смещения не менее трёх периодов подряд.';sim=null;raf=null;$('startBtn').disabled=false;return;}
+ raf=requestAnimationFrame(tick);
+}
+function resetSimulation(){if(raf)cancelAnimationFrame(raf);raf=null;sim=null;$('timerNo').textContent='00:00.0';$('timerYes').textContent='00:00.0';$('stateNo').textContent='Ожидает запуска';$('stateYes').textContent='Ожидает запуска';$('runStatus').textContent='ОЖИДАНИЕ ЗАПУСКА';updateStartAvailability();drawFreeChart()}
+function resetAll(){if(raf)cancelAnimationFrame(raf);raf=null;sim=null;$('timeSpeed').value=1;$('timeSpeedVal').textContent='×1';$('buildingCost').value='';$('damperCost').value='';$('f1').value=.2;$('mu').value=2;$('force').value=.2;$('earth').value=1;$('wind').value=25;$('mesh').value=.02;$('detune').value=0;$('damper').value='tmd';setLoad('earth');damperUI();resetSimulation()}
+['buildingCost','damperCost'].forEach(id=>$(id).addEventListener('input',update));$('freqInputMode').addEventListener('change',update);
+['f1','mu','force','earth','wind','detune'].forEach(id=>$(id).addEventListener('input',()=>{if(sim)resetSimulation();update()}));
+$('mesh').addEventListener('change',()=>{if(sim)resetSimulation();update()});$('damper').addEventListener('change',()=>{if(sim)resetSimulation();damperUI()});
+$('timeSpeed').addEventListener('input',()=>{$('timeSpeedVal').textContent='×'+$('timeSpeed').value});
+function drawBuildings(){let c=$('buildingCanvas'),x=c.getContext('2d'),W=c.width,H=c.height;x.clearRect(0,0,W,H);x.fillStyle='#0c1728';x.fillRect(0,0,W,H);x.fillStyle='#26374d';x.fillRect(0,H-30,W,30);
+ const smartUnmodelled=$('damper').value==='smart',s0=sim?sim.s0[0]:0,s1=sim?sim.s1[0]:0,rel=sim&&sim.s1.length>2?sim.s1[2]-sim.s1[0]:0,visualGain=1800,disp0=Math.max(-45,Math.min(45,s0*visualGain)),disp1=smartUnmodelled?0:Math.max(-45,Math.min(45,s1*visualGain));
+ function tower(cx,disp,color,withD){let base=H-30,top=55,bw=58,pts=[];for(let i=0;i<=20;i++){let u=i/20,y=base-(base-top)*u,shift=disp*u*u*(3-2*u);pts.push({x:cx+shift,y,u})}x.beginPath();x.moveTo(cx-bw/2,base);pts.forEach(p=>x.lineTo(p.x-bw/2,p.y));for(let i=pts.length-1;i>=0;i--)x.lineTo(pts[i].x+bw/2,pts[i].y);x.closePath();x.fillStyle='#233b58';x.fill();x.strokeStyle=color;x.lineWidth=2;x.stroke();for(let j=1;j<10;j++){let u=j/10,y=base-(base-top)*u,shift=disp*u*u*(3-2*u);x.beginPath();x.moveTo(cx+shift-bw/2,y);x.lineTo(cx+shift+bw/2,y);x.strokeStyle='#54708f';x.lineWidth=1;x.stroke()}
+  const roof=pts[20];if(withD){let d=damper(),anchorX=roof.x,anchorY=roof.y,kind=$('damper').value;if(kind==='tmd'){let lenPx=d.length*((base-top)/HBUILD),swing=Math.max(-18,Math.min(18,rel*1200));x.strokeStyle='#fbbf24';x.lineWidth=2;x.beginPath();x.moveTo(anchorX,anchorY);x.lineTo(anchorX+swing,anchorY+lenPx);x.stroke();x.fillStyle='#fbbf24';x.beginPath();x.arc(anchorX+swing,anchorY+lenPx,7,0,Math.PI*2);x.fill()}else if(kind==='tld'){let bx=anchorX-24,by=anchorY+5,bw=48,bh=24,waterY=by+10+Math.max(-5,Math.min(5,rel*500));x.fillStyle='#123c59';x.fillRect(bx,by,bw,bh);x.strokeStyle='#38bdf8';x.lineWidth=2;x.strokeRect(bx,by,bw,bh);x.save();x.beginPath();x.rect(bx+2,by+2,bw-4,bh-4);x.clip();x.fillStyle='rgba(34,211,238,.65)';x.fillRect(bx+2,waterY,bw-4,by+bh-waterY);x.strokeStyle='#67e8f9';x.beginPath();for(let i=0;i<=bw-4;i+=3)x.lineTo(bx+2+i,waterY+Math.sin(i*.22+rel*100)*1.5);x.stroke();x.restore()}else{let bx=anchorX-20,by=anchorY+5,bw=40,bh=25;x.fillStyle='#243b53';x.fillRect(bx,by,bw,bh);x.strokeStyle='#a78bfa';x.lineWidth=2;x.strokeRect(bx,by,bw,bh);x.strokeStyle='#c4b5fd';x.beginPath();x.moveTo(anchorX,anchorY);x.lineTo(anchorX,by+bh+5);x.stroke();x.fillStyle='#a78bfa';x.fillRect(bx+4,by+4,bw-8,bh-8)}}}
+ tower(225,disp0,'#f87171',false);if(!smartUnmodelled)tower(570,disp1,'#4ade80',true);x.fillStyle='#f87171';x.font='bold 14px Arial';x.textAlign='center';x.fillText('БЕЗ ДЕМПФЕРА',225,H-8);x.fillStyle='#4ade80';x.fillText(smartUnmodelled?'SMART FLUID · НЕ МОДЕЛИРУЕТСЯ':'С ДЕМПФЕРОМ',570,H-8);x.fillStyle='#94a3b8';x.font='12px Arial';x.fillText('Закреплённое основание',W/2,H-8);requestAnimationFrame(drawBuildings)}
+function drawScale(){let c=$('scaleCanvas'),x=c.getContext('2d'),W=c.width,H=c.height;x.clearRect(0,0,W,H);x.fillStyle='#0c1728';x.fillRect(0,0,W,H);let d=damper(),base=260,top=20,pxPerM=(base-top)/HBUILD,cx=190,bw=36,lenPx=d.length===null?0:d.length*pxPerM;x.strokeStyle='#94a3b8';x.beginPath();x.moveTo(80,base);x.lineTo(300,base);x.stroke();x.fillStyle='#263b58';x.fillRect(cx-bw/2,top,bw,base-top);x.strokeStyle='#38bdf8';x.strokeRect(cx-bw/2,top,bw,base-top);x.fillStyle='#cbd5e1';x.font='13px Arial';x.fillText('200 м',95,145);let kind=$('damper').value;if(kind==='tmd'){x.strokeStyle='#fbbf24';x.beginPath();x.moveTo(cx,top);x.lineTo(cx,top+lenPx);x.stroke();x.fillStyle='#fbbf24';x.beginPath();x.arc(cx,top+lenPx,3,0,Math.PI*2);x.fill()}else if(kind==='tld'){x.fillStyle='#123c59';x.fillRect(cx-10,top+3,20,12);x.strokeStyle='#38bdf8';x.strokeRect(cx-10,top+3,20,12);x.fillStyle='#67e8f9';x.fillRect(cx-8,top+9,16,4)}else{x.fillStyle='#273b59';x.fillRect(cx-9,top+3,18,14);x.strokeStyle='#c4b5fd';x.strokeRect(cx-9,top+3,18,14);x.fillStyle='#a78bfa';x.fillRect(cx-2,top-5,4,10)}
+ x.fillStyle='#94a3b8';x.fillText('РЕАЛЬНЫЙ МАСШТАБ',105,285);let ix=510,iy=65;x.strokeStyle='#38bdf8';x.strokeRect(ix,iy,270,175);x.fillStyle='#cbd5e1';x.fillText('УЗЕЛ КРЫШИ · УВЕЛИЧЕНИЕ ×10',ix+8,iy-12);x.strokeStyle='#64748b';x.beginPath();x.moveTo(ix+135,iy+25);x.lineTo(ix+135,iy+150);x.stroke();if(kind==='tmd'){let zlen=Math.min(115,lenPx*10);x.strokeStyle='#fbbf24';x.lineWidth=3;x.beginPath();x.moveTo(ix+135,iy+25);x.lineTo(ix+135,iy+25+zlen);x.stroke();x.fillStyle='#fbbf24';x.beginPath();x.arc(ix+135,iy+25+zlen,7,0,Math.PI*2);x.fill();x.fillStyle='#cbd5e1';x.fillText('Подвес: '+d.length.toFixed(2)+' м',ix+12,iy+163)}else if(kind==='tld'){x.fillStyle='#67e8f9';x.fillRect(ix+85,iy+70,100,20);x.fillStyle='#cbd5e1';x.fillText('Бак: '+d.length.toFixed(2)+' × '+d.depth.toFixed(2)+' м',ix+12,iy+163)}else{x.fillStyle='#cbd5e1';x.fillText('Реологический узел',ix+12,iy+163)}x.fillStyle='#64748b';x.fillText('Вставка увеличена, не в масштабе здания',ix+8,iy+192)}
+function loopScale(){drawScale();requestAnimationFrame(loopScale)}
+update();updateStartAvailability();drawFreeChart();requestAnimationFrame(drawBuildings);requestAnimationFrame(loopScale);
+</script></body></html>
